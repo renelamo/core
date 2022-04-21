@@ -1,5 +1,5 @@
 """Support for controlling GPIO pins of a Raspberry Pi."""
-from gpiozero import LED, DigitalInputDevice
+from gpiozero import LED, PWMLED, DigitalInputDevice
 from gpiozero.pins.pigpio import PiGPIOFactory
 
 from homeassistant.core import HomeAssistant
@@ -8,10 +8,12 @@ from homeassistant.helpers.typing import ConfigType
 CONF_BOUNCETIME = "bouncetime"
 CONF_INVERT_LOGIC = "invert_logic"
 CONF_PULL_MODE = "pull_mode"
+CONF_FREQUENCY = "frequency"
 
 DEFAULT_BOUNCETIME = 50
 DEFAULT_INVERT_LOGIC = False
 DEFAULT_PULL_MODE = "UP"
+DEFAULT_FREQUENCY = 10_000
 
 DOMAIN = "remote_rpi_gpio"
 
@@ -27,6 +29,20 @@ def setup_output(address, port, invert_logic):
     try:
         return LED(
             port, active_high=not invert_logic, pin_factory=PiGPIOFactory(address)
+        )
+    except (ValueError, IndexError, KeyError):
+        return None
+
+
+def setup_pwm_output(address, port, invert_logic, frequency):
+    """Set up a GPIO as PWM output."""
+
+    try:
+        return PWMLED(
+            port,
+            active_high=not invert_logic,
+            frequency=frequency,
+            pin_factory=PiGPIOFactory(address),
         )
     except (ValueError, IndexError, KeyError):
         return None
@@ -57,6 +73,12 @@ def write_output(switch, value):
         switch.on()
     if value == 0:
         switch.off()
+
+
+def write_pwm_output(led, value):
+    """Write a value to a PWM GPIO."""
+    if 0.0 <= value <= 1.0:
+        led.value = value
 
 
 def read_input(sensor):
