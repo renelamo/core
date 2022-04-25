@@ -9,11 +9,15 @@ CONF_BOUNCETIME = "bouncetime"
 CONF_INVERT_LOGIC = "invert_logic"
 CONF_PULL_MODE = "pull_mode"
 CONF_FREQUENCY = "frequency"
+CONF_TCP = "tcp"
+CONF_HOST = "host"
 
 DEFAULT_BOUNCETIME = 50
 DEFAULT_INVERT_LOGIC = False
 DEFAULT_PULL_MODE = "UP"
 DEFAULT_FREQUENCY = 10_000
+DEFAULT_TCP = 8888
+DEFAULT_HOST = "localhost"
 
 DOMAIN = "remote_rpi_gpio"
 
@@ -23,18 +27,20 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-def setup_output(address, port, invert_logic):
+def setup_output(address, tcp, port, invert_logic):
     """Set up a GPIO as output."""
 
     try:
         return LED(
-            port, active_high=not invert_logic, pin_factory=PiGPIOFactory(address)
+            port,
+            active_high=not invert_logic,
+            pin_factory=PiGPIOFactory(address, tcp),
         )
     except (ValueError, IndexError, KeyError):
         return None
 
 
-def setup_pwm_output(address, port, invert_logic, frequency):
+def setup_pwm_output(address, tcp, port, invert_logic, frequency):
     """Set up a GPIO as PWM output."""
 
     try:
@@ -42,13 +48,13 @@ def setup_pwm_output(address, port, invert_logic, frequency):
             port,
             active_high=not invert_logic,
             frequency=frequency,
-            pin_factory=PiGPIOFactory(address),
+            pin_factory=PiGPIOFactory(address, tcp),
         )
     except (ValueError, IndexError, KeyError):
         return None
 
 
-def setup_input(address, port, pull_mode, bouncetime):
+def setup_input(address, tcp, port, pull_mode, bouncetime):
     """Set up a GPIO as input."""
 
     if pull_mode == "UP":
@@ -61,7 +67,7 @@ def setup_input(address, port, pull_mode, bouncetime):
             port,
             pull_up=pull_gpio_up,
             bounce_time=bouncetime,
-            pin_factory=PiGPIOFactory(address),
+            pin_factory=PiGPIOFactory(address, tcp),
         )
     except (ValueError, IndexError, KeyError, OSError):
         return None

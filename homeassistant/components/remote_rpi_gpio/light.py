@@ -5,13 +5,22 @@ from __future__ import annotations
 import voluptuous as vol
 
 from homeassistant.components import light
-from homeassistant.const import CONF_HOST, DEVICE_DEFAULT_NAME
+from homeassistant.const import DEVICE_DEFAULT_NAME
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from . import CONF_FREQUENCY, CONF_INVERT_LOGIC, DEFAULT_FREQUENCY, DEFAULT_INVERT_LOGIC
+from . import (
+    CONF_FREQUENCY,
+    CONF_HOST,
+    CONF_INVERT_LOGIC,
+    CONF_TCP,
+    DEFAULT_FREQUENCY,
+    DEFAULT_HOST,
+    DEFAULT_INVERT_LOGIC,
+    DEFAULT_TCP,
+)
 from .. import remote_rpi_gpio
 
 CONF_PORTS = "ports"
@@ -20,7 +29,8 @@ _SENSORS_SCHEMA = vol.Schema({cv.string: [cv.positive_int]})
 
 light.PLATFORM_SCHEMA = light.PLATFORM_SCHEMA.extend(
     {
-        vol.Required(CONF_HOST): cv.string,
+        vol.Optional(CONF_HOST, default=DEFAULT_HOST): cv.string,
+        vol.Optional(CONF_TCP, default=DEFAULT_TCP): cv.positive_int,
         vol.Required(CONF_PORTS): _SENSORS_SCHEMA,
         vol.Optional(CONF_INVERT_LOGIC, default=DEFAULT_INVERT_LOGIC): cv.boolean,
         vol.Optional(CONF_FREQUENCY, default=DEFAULT_FREQUENCY): cv.positive_int,
@@ -36,6 +46,7 @@ def setup_platform(
 ) -> None:
     """Set up the Remote Raspberry PI GPIO devices."""
     address = config[CONF_HOST]
+    tcp = config[CONF_TCP]
     invert_logic = config[CONF_INVERT_LOGIC]
     ports = config[CONF_PORTS]
     frequency = config[CONF_FREQUENCY]
@@ -46,7 +57,7 @@ def setup_platform(
             leds = []
             for pin in port:
                 led = remote_rpi_gpio.setup_pwm_output(
-                    address, pin, invert_logic, frequency
+                    address, tcp, pin, invert_logic, frequency
                 )
                 leds.append(led)
         except (ValueError, IndexError, KeyError, OSError):

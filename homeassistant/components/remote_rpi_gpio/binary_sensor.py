@@ -5,7 +5,7 @@ import requests
 import voluptuous as vol
 
 from homeassistant.components.binary_sensor import PLATFORM_SCHEMA, BinarySensorEntity
-from homeassistant.const import CONF_HOST
+from homeassistant.const import DEVICE_DEFAULT_NAME
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -13,11 +13,15 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from . import (
     CONF_BOUNCETIME,
+    CONF_HOST,
     CONF_INVERT_LOGIC,
     CONF_PULL_MODE,
+    CONF_TCP,
     DEFAULT_BOUNCETIME,
+    DEFAULT_HOST,
     DEFAULT_INVERT_LOGIC,
     DEFAULT_PULL_MODE,
+    DEFAULT_TCP,
 )
 from .. import remote_rpi_gpio
 
@@ -27,7 +31,8 @@ _SENSORS_SCHEMA = vol.Schema({cv.positive_int: cv.string})
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Required(CONF_HOST): cv.string,
+        vol.Optional(CONF_HOST, default=DEFAULT_HOST): cv.string,
+        vol.Optional(CONF_TCP, default=DEFAULT_TCP): cv.positive_int,
         vol.Required(CONF_PORTS): _SENSORS_SCHEMA,
         vol.Optional(CONF_INVERT_LOGIC, default=DEFAULT_INVERT_LOGIC): cv.boolean,
         vol.Optional(CONF_BOUNCETIME, default=DEFAULT_BOUNCETIME): cv.positive_int,
@@ -44,6 +49,7 @@ def setup_platform(
 ) -> None:
     """Set up the Raspberry PI GPIO devices."""
     address = config["host"]
+    tcp = config[CONF_TCP]
     invert_logic = config[CONF_INVERT_LOGIC]
     pull_mode = config[CONF_PULL_MODE]
     ports = config["ports"]
@@ -53,7 +59,7 @@ def setup_platform(
     for port_num, port_name in ports.items():
         try:
             remote_sensor = remote_rpi_gpio.setup_input(
-                address, port_num, pull_mode, bouncetime
+                address, tcp, port_num, pull_mode, bouncetime
             )
         except (ValueError, IndexError, KeyError, OSError):
             return
@@ -68,7 +74,7 @@ class RemoteRPiGPIOBinarySensor(BinarySensorEntity):
 
     def __init__(self, name, sensor, invert_logic):
         """Initialize the RPi binary sensor."""
-        self._name = name
+        self._name = name or DEVICE_DEFAULT_NAME
         self._invert_logic = invert_logic
         self._state = False
         self._sensor = sensor
